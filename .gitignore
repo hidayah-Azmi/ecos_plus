@@ -1,0 +1,2 @@
+# Ignore API config (VERY IMPORTANT)
+config/api_config.php
