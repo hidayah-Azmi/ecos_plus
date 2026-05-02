@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Header Section */
         .login-header {
             background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 50%, #8BC34A 100%);
-            padding: 40px 30px;
+            padding: 40px 30px 30px 30px;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -243,6 +243,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 transform: scale(1.05);
                 box-shadow: 0 0 0 15px rgba(255, 255, 255, 0);
             }
+        }
+
+        .logo-icon img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
         }
 
         .logo-icon i {
@@ -346,6 +352,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
         }
 
+        /* Back Button Container */
+        .back-button-container {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(46, 125, 50, 0.3);
+            border-radius: 60px;
+            padding: 8px 20px;
+            color: #2E7D32;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .btn-back i {
+            font-size: 14px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: #4CAF50;
+            color: #1B5E20;
+            transform: translateX(-3px);
+        }
+
+        .btn-back:hover i {
+            transform: translateX(-3px);
+        }
+
         /* Register Link */
         .register-link {
             text-align: center;
@@ -412,8 +456,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 width: 65px;
                 height: 65px;
             }
+            .logo-icon img {
+                width: 40px;
+                height: 40px;
+            }
             .logo-icon i {
                 font-size: 35px;
+            }
+            .btn-back {
+                padding: 6px 16px;
+                font-size: 13px;
             }
         }
     </style>
@@ -435,13 +487,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-card">
             <div class="login-header">
                 <div class="logo-icon">
-                    <i class="fas fa-leaf"></i>
+                    <!-- Logo from assets/logo folder - Updated path -->
+                    <img src="assets/logo/12.png" alt="Ecos+ Logo" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-leaf\'></i>';">
                 </div>
                 <h2>Welcome Back!</h2>
                 <p>Continue your green journey with Ecos+</p>
             </div>
             <div class="login-body">
-                <?php if ($error): ?>
+                <!-- Back Button - Now redirects to index.php -->
+                <div class="back-button-container">
+                    <a href="index.php" class="btn-back">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+
+                <!-- Fixed: Check if $error is set and not empty before displaying -->
+                <?php if (isset($error) && $error !== ''): ?>
                     <div class="alert alert-danger alert-custom">
                         <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
                     </div>

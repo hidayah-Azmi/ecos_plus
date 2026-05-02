@@ -2,6 +2,7 @@
 $page_title = 'Sign Up';
 require_once 'includes/auth.php';
 
+// Redirect if already logged in
 if (isLoggedIn()) {
     header('Location: dashboard.php');
     exit();
@@ -10,27 +11,54 @@ if (isLoggedIn()) {
 $error = '';
 $success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     $full_name = trim($_POST['full_name']);
     $email = trim($_POST['email']);
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
     $phone = trim($_POST['phone'] ?? '');
+    $student_id = trim($_POST['student_id'] ?? '');
+    $faculty = trim($_POST['faculty'] ?? '');
+    $year_of_study = trim($_POST['year_of_study'] ?? '');
     
-    if (empty($full_name) || empty($email) || empty($password)) {
-        $error = 'Please fill in all required fields';
-    } elseif ($password !== $confirm_password) {
-        $error = 'Passwords do not match';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters';
-    } else {
-        $result = register($full_name, $email, $password, $phone);
+    $errors = array();
+    
+    // Validation
+    if (empty($full_name)) {
+        $errors[] = 'Please enter your full name';
+    }
+    if (empty($email)) {
+        $errors[] = 'Please enter your email address';
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Invalid email address format';
+    }
+    if (!validateEmailDomain($email)) {
+        $errors[] = 'Only @adab.umpsa.edu.my email addresses are allowed';
+    }
+    if (empty($password)) {
+        $errors[] = 'Please enter a password';
+    }
+    if ($password !== $confirm_password) {
+        $errors[] = 'Passwords do not match';
+    }
+    if (strlen($password) < 6) {
+        $errors[] = 'Password must be at least 6 characters';
+    }
+    
+    if (empty($errors)) {
+        // Call register function with all parameters
+        $result = register($full_name, $email, $password, $phone, $student_id, $faculty, $year_of_study);
         
         if ($result['success']) {
             $success = $result['message'];
+            $_POST = array();
+            echo '<meta http-equiv="refresh" content="2;url=login.php">';
         } else {
             $error = $result['message'];
         }
+    } else {
+        $error = implode('<br>', $errors);
     }
 }
 ?>
@@ -53,12 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         body {
             font-family: 'Poppins', sans-serif;
             min-height: 100vh;
-            background: linear-gradient(135deg, #1a4d2e 0%, #0f0c29 50%, #2E7D32 100%);
+            background: linear-gradient(135deg, #0f0c29 0%, #1a4d2e 50%, #24243e 100%);
             position: relative;
             overflow-x: hidden;
         }
 
-        /* Animated Background */
         .bg-animation {
             position: fixed;
             top: 0;
@@ -69,99 +96,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             overflow: hidden;
         }
 
-        /* Floating Trees/Bushes */
-        .bg-animation .tree {
+        .bg-animation .leaf {
             position: absolute;
-            bottom: -50px;
+            background: rgba(76, 175, 80, 0.15);
+            border-radius: 0 100% 0 100%;
+            transform: rotate(45deg);
+            animation: floatLeaf 15s infinite;
+        }
+
+        .bg-animation .leaf:nth-child(1) {
+            width: 150px;
+            height: 150px;
+            top: 10%;
+            left: -50px;
+            animation-delay: 0s;
+        }
+
+        .bg-animation .leaf:nth-child(2) {
             width: 200px;
             height: 200px;
-            background: rgba(76, 175, 80, 0.08);
-            border-radius: 50%;
-            animation: sway 10s infinite ease-in-out;
+            bottom: 10%;
+            right: -70px;
+            animation-delay: 5s;
+            background: rgba(139, 195, 74, 0.1);
         }
 
-        .bg-animation .tree:nth-child(1) {
-            left: -80px;
-            width: 250px;
-            height: 250px;
-            animation-delay: 0s;
+        .bg-animation .leaf:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            top: 50%;
+            left: 80%;
+            animation-delay: 10s;
+            background: rgba(76, 175, 80, 0.12);
         }
 
-        .bg-animation .tree:nth-child(2) {
-            right: -100px;
-            bottom: -30px;
-            width: 300px;
-            height: 300px;
+        .bg-animation .leaf:nth-child(4) {
+            width: 80px;
+            height: 80px;
+            bottom: 30%;
+            left: 15%;
+            animation-delay: 7s;
+            background: rgba(139, 195, 74, 0.08);
+        }
+
+        .bg-animation .leaf:nth-child(5) {
+            width: 120px;
+            height: 120px;
+            top: 70%;
+            left: 40%;
             animation-delay: 3s;
-            background: rgba(139, 195, 74, 0.06);
+            background: rgba(76, 175, 80, 0.1);
         }
 
-        .bg-animation .tree:nth-child(3) {
-            left: 20%;
-            bottom: -60px;
-            width: 180px;
-            height: 180px;
-            animation-delay: 6s;
-            background: rgba(76, 175, 80, 0.05);
-        }
-
-        @keyframes sway {
+        @keyframes floatLeaf {
             0%, 100% {
-                transform: translateX(0) rotate(0deg);
+                transform: rotate(45deg) translateY(0) translateX(0);
+                opacity: 0.3;
             }
             50% {
-                transform: translateX(30px) rotate(5deg);
+                transform: rotate(60deg) translateY(-30px) translateX(20px);
+                opacity: 0.6;
             }
         }
 
-        /* Floating Icons */
-        .bg-animation .float-icon {
+        .bg-animation .recycle-icon {
             position: absolute;
-            font-size: 35px;
-            opacity: 0.1;
-            animation: floatIcon 18s infinite;
+            font-size: 40px;
+            opacity: 0.08;
+            animation: floatRecycle 20s infinite;
         }
 
-        .bg-animation .float-icon:nth-child(4) {
-            top: 15%;
-            left: 10%;
+        .bg-animation .recycle-icon:nth-child(6) {
+            top: 20%;
+            right: 15%;
             animation-delay: 0s;
+            font-size: 60px;
+        }
+
+        .bg-animation .recycle-icon:nth-child(7) {
+            bottom: 25%;
+            left: 10%;
+            animation-delay: 8s;
             font-size: 50px;
         }
 
-        .bg-animation .float-icon:nth-child(5) {
+        .bg-animation .recycle-icon:nth-child(8) {
             top: 60%;
-            right: 8%;
-            animation-delay: 5s;
+            right: 25%;
+            animation-delay: 4s;
             font-size: 45px;
         }
 
-        .bg-animation .float-icon:nth-child(6) {
-            top: 30%;
-            right: 20%;
-            animation-delay: 10s;
-            font-size: 40px;
-        }
-
-        .bg-animation .float-icon:nth-child(7) {
-            bottom: 20%;
-            left: 15%;
-            animation-delay: 7s;
-            font-size: 55px;
-        }
-
-        @keyframes floatIcon {
+        @keyframes floatRecycle {
             0%, 100% {
                 transform: translateY(0) rotate(0deg);
                 opacity: 0.05;
             }
             50% {
-                transform: translateY(-50px) rotate(180deg);
-                opacity: 0.15;
+                transform: translateY(-40px) rotate(180deg);
+                opacity: 0.12;
             }
         }
 
-        /* Main Container */
         .register-container {
             position: relative;
             z-index: 1;
@@ -169,10 +205,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px 20px;
+            padding: 20px;
         }
 
-        /* Register Card */
         .register-card {
             max-width: 550px;
             width: 100%;
@@ -181,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 40px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
             overflow: hidden;
+            transform: translateY(0);
             transition: transform 0.3s ease;
         }
 
@@ -188,9 +224,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(-5px);
         }
 
-        /* Header Section */
         .register-header {
-            background: linear-gradient(135deg, #1B5E20 0%, #4CAF50 50%, #81C784 100%);
+            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 50%, #8BC34A 100%);
             padding: 35px 30px;
             text-align: center;
             position: relative;
@@ -198,55 +233,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .register-header::before {
-            content: '🌍';
+            content: '🌱';
             position: absolute;
-            right: -20px;
-            bottom: -20px;
-            font-size: 100px;
+            right: -30px;
+            bottom: -30px;
+            font-size: 120px;
             opacity: 0.15;
+            transform: rotate(-15deg);
         }
 
         .register-header::after {
             content: '♻️';
             position: absolute;
-            left: -20px;
-            top: -20px;
-            font-size: 90px;
+            left: -30px;
+            top: -30px;
+            font-size: 100px;
             opacity: 0.15;
+            transform: rotate(15deg);
         }
 
         .logo-icon {
-            width: 75px;
-            height: 75px;
+            width: 80px;
+            height: 80px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 22px;
+            border-radius: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 18px;
+            margin: 0 auto 15px;
             backdrop-filter: blur(5px);
-            animation: bounce 2s infinite;
+            animation: pulse 2s infinite;
         }
 
-        @keyframes bounce {
+        .logo-icon img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        @keyframes pulse {
             0%, 100% {
-                transform: translateY(0);
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
             }
             50% {
-                transform: translateY(-8px);
+                transform: scale(1.05);
+                box-shadow: 0 0 0 15px rgba(255, 255, 255, 0);
             }
-        }
-
-        .logo-icon i {
-            font-size: 40px;
-            color: white;
         }
 
         .register-header h2 {
             color: white;
-            font-size: 30px;
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .register-header p {
@@ -254,89 +294,154 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 13px;
         }
 
-        /* Body Section */
         .register-body {
-            padding: 35px;
+            padding: 30px;
+            max-height: 60vh;
+            overflow-y: auto;
         }
 
-        /* Form Inputs - FIXED */
-        .input-group-custom {
+        .register-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .register-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .register-body::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border-radius: 10px;
+        }
+
+        .back-button-container {
             margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(46, 125, 50, 0.3);
+            border-radius: 60px;
+            padding: 8px 20px;
+            color: #2E7D32;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back i {
+            font-size: 14px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: #4CAF50;
+            color: #1B5E20;
+            transform: translateX(-3px);
+        }
+
+        .btn-back:hover i {
+            transform: translateX(-3px);
+        }
+
+        .input-group-custom {
+            margin-bottom: 18px;
             position: relative;
         }
 
         .input-group-custom .input-icon {
             position: absolute;
             left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 42px;
             color: #4CAF50;
-            font-size: 16px;
+            font-size: 15px;
             z-index: 2;
             pointer-events: none;
         }
 
-        .input-group-custom input {
+        .input-group-custom input, .input-group-custom select {
             width: 100%;
-            padding: 14px 18px 14px 48px;
+            padding: 12px 18px 12px 45px;
             border: 2px solid #e0e0e0;
             border-radius: 60px;
             font-size: 14px;
             transition: all 0.3s;
             background: #f8f9fa;
+            height: 46px;
         }
 
-        .input-group-custom input:focus {
+        .input-group-custom select {
+            cursor: pointer;
+        }
+
+        .input-group-custom input:focus, .input-group-custom select:focus {
             outline: none;
             border-color: #4CAF50;
             background: white;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.1);
         }
 
         .input-group-custom label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: #555;
             margin-bottom: 8px;
             margin-left: 5px;
         }
 
-        /* Email Hint - FIXED */
-        .email-hint {
+        .input-group-custom label i {
+            margin-right: 5px;
             font-size: 11px;
             color: #4CAF50;
-            margin-top: -10px;
-            margin-bottom: 15px;
-            margin-left: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
-        .email-hint i {
-            font-size: 12px;
+        .password-wrapper {
+            position: relative;
         }
 
-        /* Domain Notice - FIXED */
-        .domain-notice {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            border-radius: 60px;
-            padding: 12px 20px;
-            font-size: 13px;
-            color: #2E7D32;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: center;
+        .password-wrapper input {
+            padding-right: 45px;
         }
 
-        .domain-notice i {
-            font-size: 16px;
+        .password-toggle {
+            position: absolute;
+            right: 18px;
+            top: 12px;
+            cursor: pointer;
+            color: #999;
+            font-size: 15px;
+            z-index: 5;
         }
 
-        /* Register Button */
+        .password-toggle:hover {
+            color: #4CAF50;
+        }
+
+        .hint {
+            font-size: 10px;
+            color: #888;
+            margin-top: 5px;
+            margin-left: 12px;
+        }
+
+        .hint i {
+            font-size: 9px;
+            margin-right: 3px;
+        }
+
+        .row-2cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
         .btn-register {
             width: 100%;
             padding: 14px;
@@ -344,11 +449,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: none;
             border-radius: 60px;
             color: white;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 15px;
+            margin-top: 10px;
             position: relative;
             overflow: hidden;
         }
@@ -373,17 +478,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
         }
 
-        /* Login Link */
         .login-link {
             text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
+            margin-top: 20px;
+            padding-top: 15px;
             border-top: 1px solid #e0e0e0;
         }
 
         .login-link p {
             font-size: 13px;
             color: #666;
+            margin: 0;
         }
 
         .login-link a {
@@ -396,62 +501,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: underline;
         }
 
-        /* Alert */
         .alert-custom {
             border-radius: 60px;
-            padding: 12px 20px;
+            padding: 10px 18px;
             margin-bottom: 20px;
-            font-size: 13px;
+            font-size: 12px;
             border: none;
         }
 
-        /* University Badge */
-        .university-badge {
+        .alert-danger {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 3px solid #c62828;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #2e7d32;
+        }
+
+        .green-quote {
             text-align: center;
             margin-top: 20px;
+            padding: 12px;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-radius: 20px;
         }
 
-        .university-badge p {
-            font-size: 10px;
-            color: #999;
-        }
-
-        /* Terms Checkbox */
-        .terms-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 20px 0 10px;
-        }
-
-        .terms-checkbox input {
-            width: 16px;
-            height: 16px;
-            accent-color: #4CAF50;
-            cursor: pointer;
-        }
-
-        .terms-checkbox label {
-            font-size: 12px;
-            color: #666;
-            cursor: pointer;
-        }
-
-        .terms-checkbox a {
+        .green-quote i {
+            font-size: 20px;
             color: #4CAF50;
-            text-decoration: none;
+            margin-bottom: 8px;
         }
 
-        /* Password Hint */
-        .password-hint {
+        .green-quote p {
             font-size: 11px;
-            color: #666;
-            margin-top: -10px;
-            margin-bottom: 15px;
-            margin-left: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            color: #2E7D32;
+            margin: 0;
+            font-style: italic;
         }
 
         @media (max-width: 576px) {
@@ -459,127 +547,201 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 padding: 25px;
             }
             .register-header {
-                padding: 25px;
+                padding: 25px 20px;
             }
             .logo-icon {
-                width: 60px;
-                height: 60px;
+                width: 65px;
+                height: 65px;
             }
-            .logo-icon i {
-                font-size: 30px;
+            .logo-icon img {
+                width: 45px;
+                height: 45px;
+            }
+            .row-2cols {
+                grid-template-columns: 1fr;
+                gap: 0;
             }
             .input-group-custom .input-icon {
-                left: 15px;
+                top: 38px;
             }
-            .input-group-custom input {
-                padding: 12px 15px 12px 45px;
+            .password-toggle {
+                top: 10px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
     <div class="bg-animation">
-        <div class="tree"></div>
-        <div class="tree"></div>
-        <div class="tree"></div>
-        <div class="float-icon"><i class="fas fa-recycle"></i></div>
-        <div class="float-icon"><i class="fas fa-leaf"></i></div>
-        <div class="float-icon"><i class="fas fa-seedling"></i></div>
-        <div class="float-icon"><i class="fas fa-tree"></i></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="recycle-icon"><i class="fas fa-recycle"></i></div>
+        <div class="recycle-icon"><i class="fas fa-leaf"></i></div>
+        <div class="recycle-icon"><i class="fas fa-seedling"></i></div>
     </div>
 
     <div class="register-container">
         <div class="register-card">
             <div class="register-header">
                 <div class="logo-icon">
-                    <i class="fas fa-seedling"></i>
+                    <img src="assets/logo/12.png" alt="Ecos+ Logo" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-seedling\'></i>';">
                 </div>
                 <h2>Join Ecos+</h2>
-                <p>Start your green journey with UMPSA community</p>
+                <p>Start your green journey today</p>
             </div>
             <div class="register-body">
-                <?php if ($error): ?>
-                    <div class="alert alert-danger alert-custom">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
-                    </div>
-                <?php endif; ?>
-                <?php if ($success): ?>
-                    <div class="alert alert-success alert-custom">
-                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success); ?>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Domain Notice -->
-                <div class="domain-notice">
-                    <i class="fas fa-envelope"></i>
-                    <strong>Only @adab.umpsa.edu.my email addresses are allowed</strong>
+                <div class="back-button-container">
+                    <a href="login.php" class="btn-back">
+                        <i class="fas fa-arrow-left"></i> Back to Login
+                    </a>
                 </div>
 
-                <form method="POST">
-                    <!-- Full Name -->
+                <?php if ($error): ?>
+                    <div class="alert alert-danger alert-custom">
+                        <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($success): ?>
+                    <div class="alert alert-success alert-custom">
+                        <i class="fas fa-check-circle"></i> <?php echo $success; ?> Redirecting...
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" id="registerForm">
                     <div class="input-group-custom">
-                        <label>Full Name</label>
+                        <label><i class="fas fa-user"></i> Full Name <span style="color:#e53935;">*</span></label>
                         <i class="fas fa-user input-icon"></i>
-                        <input type="text" name="full_name" placeholder="Enter your full name" required>
+                        <input type="text" name="full_name" value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>" placeholder="Enter your full name" required>
                     </div>
 
-                    <!-- University Email -->
                     <div class="input-group-custom">
-                        <label>University Email</label>
+                        <label><i class="fas fa-envelope"></i> University Email <span style="color:#e53935;">*</span></label>
                         <i class="fas fa-envelope input-icon"></i>
-                        <input type="email" name="email" placeholder="yourname@adab.umpsa.edu.my" required>
+                        <input type="email" name="email" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" placeholder="example@adab.umpsa.edu.my" required>
+                        <div class="hint">
+                            <i class="fas fa-info-circle"></i> Only @adab.umpsa.edu.my email addresses are allowed
+                        </div>
                     </div>
 
-                    <div class="email-hint">
-                        <i class="fas fa-info-circle"></i> Must be a valid @adab.umpsa.edu.my email address
+                    <div class="row-2cols">
+                        <div class="input-group-custom">
+                            <label><i class="fas fa-phone"></i> Phone Number</label>
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" name="phone" value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>" placeholder="012-3456789">
+                        </div>
+
+                        <div class="input-group-custom">
+                            <label><i class="fas fa-id-card"></i> Student/Staff ID</label>
+                            <i class="fas fa-id-card input-icon"></i>
+                            <input type="text" name="student_id" value="<?php echo isset($_POST['student_id']) ? htmlspecialchars($_POST['student_id']) : ''; ?>" placeholder="e.g., TG25008">
+                        </div>
                     </div>
 
-                    <!-- Phone Number -->
+                    <div class="row-2cols">
+                        <div class="input-group-custom">
+                            <label><i class="fas fa-building"></i> Faculty</label>
+                            <i class="fas fa-building input-icon"></i>
+                            <select name="faculty">
+                                <option value="">Select Faculty</option>
+                                <option value="FKOM" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FKOM') ? 'selected' : ''; ?>>Faculty of Chemical and Process Engineering Technology</option>
+                                <option value="FKE" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FKE') ? 'selected' : ''; ?>>Faculty of Civil Engineering Technology</option>
+                                <option value="FPTP" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FPTP') ? 'selected' : ''; ?>>Faculty of Electrical and Electronics Engineering Technology</option>
+                                <option value="FSSH" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FSSH') ? 'selected' : ''; ?>>Faculty of Manufacturing and Mechatronic Engineering Technology</option>
+                                <option value="FSSH" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FSSH') ? 'selected' : ''; ?>>Faculty of Mechanical and Automotive Engineering Technology</option>
+                                <option value="FSSH" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FSSH') ? 'selected' : ''; ?>>Centre for Mathematical Sciences</option>
+                                <option value="FSSH" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FSSH') ? 'selected' : ''; ?>>Faculty of Computing</option>
+                                <option value="FSSH" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FSSH') ? 'selected' : ''; ?>>Faculty of Industrial Sciences and Technology</option>
+                                <option value="FSSH" <?php echo (isset($_POST['faculty']) && $_POST['faculty'] == 'FSSH') ? 'selected' : ''; ?>>Faculty of Industrial Management</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <label><i class="fas fa-graduation-cap"></i> Year of Study</label>
+                            <i class="fas fa-graduation-cap input-icon"></i>
+                            <select name="year_of_study">
+                                <option value="">Select Year</option>
+                                <option value="1" <?php echo (isset($_POST['year_of_study']) && $_POST['year_of_study'] == '1') ? 'selected' : ''; ?>>Year 1</option>
+                                <option value="2" <?php echo (isset($_POST['year_of_study']) && $_POST['year_of_study'] == '2') ? 'selected' : ''; ?>>Year 2</option>
+                                <option value="3" <?php echo (isset($_POST['year_of_study']) && $_POST['year_of_study'] == '3') ? 'selected' : ''; ?>>Year 3</option>
+                                <option value="4" <?php echo (isset($_POST['year_of_study']) && $_POST['year_of_study'] == '4') ? 'selected' : ''; ?>>Year 4</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="input-group-custom">
-                        <label>Phone Number (Optional)</label>
-                        <i class="fas fa-phone input-icon"></i>
-                        <input type="tel" name="phone" placeholder="Enter your phone number">
-                    </div>
-
-                    <!-- Password -->
-                    <div class="input-group-custom">
-                        <label>Password</label>
+                        <label><i class="fas fa-lock"></i> Password <span style="color:#e53935;">*</span></label>
                         <i class="fas fa-lock input-icon"></i>
-                        <input type="password" name="password" id="password" placeholder="Create a password" required>
+                        <div class="password-wrapper">
+                            <input type="password" name="password" id="password" placeholder="Minimum 6 characters" required>
+                            <i class="fas fa-eye password-toggle" onclick="togglePassword('password')"></i>
+                        </div>
                     </div>
 
-                    <div class="password-hint">
-                        <i class="fas fa-shield-alt"></i> Password must be at least 6 characters
-                    </div>
-
-                    <!-- Confirm Password -->
                     <div class="input-group-custom">
-                        <label>Confirm Password</label>
+                        <label><i class="fas fa-lock"></i> Confirm Password <span style="color:#e53935;">*</span></label>
                         <i class="fas fa-lock input-icon"></i>
-                        <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required>
+                        <div class="password-wrapper">
+                            <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required>
+                            <i class="fas fa-eye password-toggle" onclick="togglePassword('confirm_password')"></i>
+                        </div>
                     </div>
 
-                    <!-- Terms Checkbox -->
-                    <div class="terms-checkbox">
-                        <input type="checkbox" id="terms" required>
-                        <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
-                    </div>
-
-                    <button type="submit" class="btn-register">
+                    <button type="submit" name="register" class="btn-register">
                         <i class="fas fa-user-plus"></i> Create Account
                     </button>
                 </form>
 
                 <div class="login-link">
-                    <p>Already have an account? <a href="login.php">Sign in here</a></p>
+                    <p>Already have an account? <a href="login.php">Sign In</a></p>
                 </div>
 
-                <div class="university-badge">
-                    <p><i class="fas fa-university"></i> Universiti Malaysia Pahang Al-Sultan Abdullah</p>
+                <div class="green-quote">
+                    <i class="fas fa-quote-left"></i>
+                    <p>"The greatest threat to our planet is the belief that someone else will save it."</p>
+                    <small style="color: #4CAF50;">- Robert Swan</small>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        function togglePassword(fieldId) {
+            const input = document.getElementById(fieldId);
+            const icon = input.nextElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        const password = document.getElementById('password');
+        const confirm = document.getElementById('confirm_password');
+
+        function validateMatch() {
+            if (password.value !== confirm.value && confirm.value !== '') {
+                confirm.style.borderColor = '#e53935';
+            } else {
+                confirm.style.borderColor = '#e0e0e0';
+            }
+        }
+
+        password.addEventListener('keyup', validateMatch);
+        confirm.addEventListener('keyup', validateMatch);
+
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            if (password.value !== confirm.value) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+            }
+        });
+    </script>
 </body>
 </html>

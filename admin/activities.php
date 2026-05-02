@@ -6,6 +6,9 @@ requireAdmin();
 
 $conn = getConnection();
 
+// Load notification functions
+require_once '../includes/notifications.php';
+
 // Get user for navbar
 $navbar_user = getCurrentUser();
 $navbar_initial = $navbar_user ? strtoupper(substr($navbar_user['full_name'], 0, 1)) : 'U';
@@ -17,8 +20,11 @@ $messageType = '';
 if (isset($_GET['approve']) && is_numeric($_GET['approve'])) {
     $activity_id = intval($_GET['approve']);
     
-    // Get activity details
-    $activityQuery = "SELECT user_id, points_earned FROM activities WHERE id = ?";
+    // Get activity details with user info
+    $activityQuery = "SELECT a.user_id, a.points_earned, a.activity_type, a.description, u.full_name 
+                      FROM activities a 
+                      JOIN users u ON a.user_id = u.id 
+                      WHERE a.id = ?";
     $stmt = $conn->prepare($activityQuery);
     $stmt->bind_param("i", $activity_id);
     $stmt->execute();
@@ -40,10 +46,14 @@ if (isset($_GET['approve']) && is_numeric($_GET['approve'])) {
             $pointsStmt->close();
             
             // Check and award badges
-            require_once '../includes/auth.php';
             checkAndAwardBadges($activity['user_id']);
             
-            $message = "Activity approved and " . $activity['points_earned'] . " points awarded!";
+            // CREATE NOTIFICATION FOR USER - Activity Approved
+            $notificationTitle = 'Activity Approved! 🎉';
+            $notificationMessage = "Your {$activity['activity_type']} activity has been approved! You earned " . $activity['points_earned'] . " points.";
+            createNotification($activity['user_id'], 'activity_approved', $notificationTitle, $notificationMessage, $activity_id);
+            
+            $message = "Activity approved and " . $activity['points_earned'] . " points awarded! Notification sent to user.";
             $messageType = "success";
         } else {
             $message = "Failed to approve activity.";
@@ -57,27 +67,43 @@ if (isset($_GET['approve']) && is_numeric($_GET['approve'])) {
 if (isset($_GET['reject']) && is_numeric($_GET['reject'])) {
     $activity_id = intval($_GET['reject']);
     
-    $updateSql = "UPDATE activities SET status = 'rejected', approved_at = NOW(), approved_by = ? WHERE id = ?";
-    $stmt = $conn->prepare($updateSql);
-    $stmt->bind_param("ii", $_SESSION['user_id'], $activity_id);
-    
-    if ($stmt->execute()) {
-        $message = "Activity rejected.";
-        $messageType = "warning";
-    } else {
-        $message = "Failed to reject activity.";
-        $messageType = "danger";
-    }
+    // Get activity details
+    $activityQuery = "SELECT a.user_id, a.activity_type, u.full_name FROM activities a JOIN users u ON a.user_id = u.id WHERE a.id = ?";
+    $stmt = $conn->prepare($activityQuery);
+    $stmt->bind_param("i", $activity_id);
+    $stmt->execute();
+    $activity = $stmt->get_result()->fetch_assoc();
     $stmt->close();
+    
+    if ($activity) {
+        $updateSql = "UPDATE activities SET status = 'rejected', approved_at = NOW(), approved_by = ? WHERE id = ?";
+        $stmt = $conn->prepare($updateSql);
+        $stmt->bind_param("ii", $_SESSION['user_id'], $activity_id);
+        
+        if ($stmt->execute()) {
+            // CREATE NOTIFICATION FOR USER - Activity Rejected
+            $notificationTitle = 'Activity Needs Revision 😢';
+            $notificationMessage = "Your {$activity['activity_type']} activity was not approved. Please check the guidelines and try again.";
+            createNotification($activity['user_id'], 'activity_rejected', $notificationTitle, $notificationMessage, $activity_id);
+            
+            $message = "Activity rejected. Notification sent to user.";
+            $messageType = "warning";
+        } else {
+            $message = "Failed to reject activity.";
+            $messageType = "danger";
+        }
+        $stmt->close();
+    }
 }
 
 // Handle bulk approve
 if (isset($_POST['bulk_approve']) && isset($_POST['selected_ids'])) {
     $selected_ids = $_POST['selected_ids'];
     $approved_count = 0;
+    $notification_count = 0;
     
     foreach ($selected_ids as $activity_id) {
-        $activityQuery = "SELECT user_id, points_earned FROM activities WHERE id = ?";
+        $activityQuery = "SELECT a.user_id, a.points_earned, a.activity_type, a.description FROM activities a WHERE a.id = ?";
         $stmt = $conn->prepare($activityQuery);
         $stmt->bind_param("i", $activity_id);
         $stmt->execute();
@@ -96,13 +122,19 @@ if (isset($_POST['bulk_approve']) && isset($_POST['selected_ids'])) {
                 $pointsStmt->execute();
                 $pointsStmt->close();
                 $approved_count++;
+                
+                // Send notification for bulk approved activity
+                $notificationTitle = 'Activity Approved! 🎉';
+                $notificationMessage = "Your {$activity['activity_type']} activity has been approved! You earned " . $activity['points_earned'] . " points.";
+                createNotification($activity['user_id'], 'activity_approved', $notificationTitle, $notificationMessage, $activity_id);
+                $notification_count++;
             }
             $stmt->close();
         }
     }
     
     if ($approved_count > 0) {
-        $message = "$approved_count activities approved successfully!";
+        $message = "$approved_count activities approved successfully! $notification_count notifications sent.";
         $messageType = "success";
     } else {
         $message = "No activities were approved.";
@@ -340,7 +372,7 @@ $activityIcons = [
             transform: translateX(100%);
             transition: transform 0.3s ease;
         }
-        .mobile-menu.show { transform: translateX(0); }
+        .mobile-menu.show { transform: translateX(0); display: block; }
         .mobile-nav { list-style: none; padding: 0; }
         .mobile-nav li { margin-bottom: 5px; }
         .mobile-nav a {
@@ -358,6 +390,7 @@ $activityIcons = [
             color: #4CAF50;
         }
         .mobile-nav a i { width: 24px; }
+        
         @media (max-width: 992px) {
             .nav-links { display: none; }
             .mobile-toggle { display: block; }
@@ -497,7 +530,7 @@ $activityIcons = [
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="dashboard.php" class="navbar-brand-custom">
                 <div class="logo-icon">
-                    <img src="assets/images/umpsa.png" alt="Logo" style="height:25px; object-fit:cover;">
+                    <img src="../assets/logo/12.png" alt="Logo" style="height:30px; object-fit:cover;">
                 </div>
                 <div class="logo-text">Ecos<span>+</span> Admin</div>
             </a>
@@ -625,7 +658,7 @@ $activityIcons = [
 
     <!-- Bulk Action Bar -->
     <div class="bulk-bar" id="bulkBar">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <span id="selectedCount">0</span> activities selected
             </div>
@@ -659,7 +692,7 @@ $activityIcons = [
                             <th>Status</th>
                             <th>Submitted</th>
                             <th>Actions</th>
-                        </tr>
+                         </tr>
                     </thead>
                     <tbody>
                         <?php if ($activities->num_rows > 0): ?>
@@ -712,11 +745,11 @@ $activityIcons = [
                                     </td>
                                     <td>
                                         <?php if ($activity['status'] == 'pending'): ?>
-                                            <a href="?approve=<?php echo $activity['id']; ?>&<?php echo http_build_query($_GET); ?>" class="btn-approve btn-sm" onclick="return confirm('Approve this activity? Points will be awarded.')">
+                                            <a href="?approve=<?php echo $activity['id']; ?>&<?php echo http_build_query($_GET); ?>" class="btn-approve btn-sm" onclick="return confirm('Approve this activity? Points will be awarded and user will be notified.')">
                                                 <i class="fas fa-check"></i> Approve
                                             </a>
                                             <br>
-                                            <a href="?reject=<?php echo $activity['id']; ?>&<?php echo http_build_query($_GET); ?>" class="btn-reject btn-sm mt-1" onclick="return confirm('Reject this activity?')">
+                                            <a href="?reject=<?php echo $activity['id']; ?>&<?php echo http_build_query($_GET); ?>" class="btn-reject btn-sm mt-1" onclick="return confirm('Reject this activity? User will be notified.')">
                                                 <i class="fas fa-times"></i> Reject
                                             </a>
                                         <?php else: ?>
@@ -736,6 +769,7 @@ $activityIcons = [
                     </tbody>
                 </table>
             </div>
+            <input type="hidden" name="bulk_approve" value="1">
         </form>
     </div>
 </div>
@@ -813,7 +847,7 @@ $activityIcons = [
             return;
         }
         
-        if (confirm('Approve ' + checked.length + ' selected activities? Points will be awarded to users.')) {
+        if (confirm('Approve ' + checked.length + ' selected activities? Points will be awarded and users will be notified.')) {
             document.getElementById('bulkForm').submit();
         }
     }

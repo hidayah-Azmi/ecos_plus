@@ -429,7 +429,7 @@ $conn->close();
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="dashboard.php" class="navbar-brand-custom">
                 <div class="logo-icon">
-                    <img src="assets/images/umpsa.png" alt="Logo" style="height:25px; object-fit:cover;">
+                    <img src="assets/logo/12.png" alt="Logo" style="height:30px; object-fit:cover;">
                 </div>
                 <div class="logo-text">Ecos<span>+</span> Admin</div>
             </a>

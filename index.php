@@ -398,7 +398,7 @@ if (empty($slideshow_images)) {
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="index.php" class="navbar-brand-custom">
                 <div class="logo-icon">
-                    <img src="assets/images/umpsa.png" alt="Logo" style="height:25px; object-fit:cover;">
+                    <img src="assets/logo/12.png" alt="Logo" style="height:30px; object-fit:cover;">
                 </div>
                 <div class="logo-text">Ecos<span>+</span></div>
             </a>
@@ -527,7 +527,7 @@ if (empty($slideshow_images)) {
                     <div class="feature-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <h3 class="feature-title">AI Insights</h3>
+                    <h3 class="feature-title">AIs</h3>
                     <p class="feature-desc">Personalized recycling analytics and tips to help you become a better recycler.</p>
                 </div>
             </div>
@@ -653,7 +653,7 @@ if (empty($slideshow_images)) {
             <div class="col-md-4">
                 <div class="testimonial-card">
                     <div class="testimonial-text">
-                        "I love the AI insights feature! It helps me understand my recycling habits and gives me tips to improve. Great platform for our campus!"
+                        "I love the AIs feature! It helps me understand my recycling habits and gives me tips to improve. Great platform for our campus!"
                     </div>
                     <div class="testimonial-author">
                         <div class="testimonial-avatar">M</div>

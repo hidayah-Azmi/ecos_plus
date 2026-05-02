@@ -30,7 +30,6 @@ function getConnection() {
 // =============================================
 
 function validateEmailDomain($email) {
-    // Only allow @adab.umpsa.edu.my domain
     $allowed_domain = '@adab.umpsa.edu.my';
     $domain = substr(strrchr($email, "@"), 0);
     return $domain === $allowed_domain;
@@ -71,7 +70,7 @@ function getCurrentUser() {
     $conn = getConnection();
     $user_id = $_SESSION['user_id'];
     
-    $sql = "SELECT id, email, full_name, phone, points, role, profile_image, bio, created_at FROM users WHERE id = ?";
+    $sql = "SELECT id, email, username, full_name, phone, points, role, profile_image, bio, faculty, year_of_study, student_id, created_at FROM users WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -86,7 +85,7 @@ function getCurrentUser() {
 function login($email, $password) {
     $conn = getConnection();
     
-    $sql = "SELECT id, email, full_name, password, points, role FROM users WHERE email = ?";
+    $sql = "SELECT id, email, username, full_name, password, points, role FROM users WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -98,6 +97,7 @@ function login($email, $password) {
         if (password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_username'] = $user['username'];
             $_SESSION['user_name'] = $user['full_name'];
             $_SESSION['user_role'] = $user['role'];
             $_SESSION['user_points'] = $user['points'];
@@ -111,7 +111,7 @@ function login($email, $password) {
     return false;
 }
 
-function register($full_name, $email, $password, $phone = null) {
+function register($full_name, $email, $password, $phone = null, $student_id = null, $faculty = null, $year_of_study = null) {
     $conn = getConnection();
     
     // Validate email domain - ONLY @adab.umpsa.edu.my
@@ -132,19 +132,49 @@ function register($full_name, $email, $password, $phone = null) {
     }
     $checkStmt->close();
     
+    // Generate username from email (remove @adab.umpsa.edu.my)
+    $username = strstr($email, '@', true);
+    // Clean username - remove special characters, only allow letters, numbers, underscore
+    $username = preg_replace('/[^a-zA-Z0-9_]/', '_', $username);
+    
+    // Make sure username is unique
+    $baseUsername = $username;
+    $counter = 1;
+    while (true) {
+        $checkUsernameSql = "SELECT id FROM users WHERE username = ?";
+        $checkUsernameStmt = $conn->prepare($checkUsernameSql);
+        $checkUsernameStmt->bind_param("s", $username);
+        $checkUsernameStmt->execute();
+        $checkUsernameResult = $checkUsernameStmt->get_result();
+        if ($checkUsernameResult->num_rows === 0) {
+            $checkUsernameStmt->close();
+            break;
+        }
+        $checkUsernameStmt->close();
+        $username = $baseUsername . $counter;
+        $counter++;
+    }
+    
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    $role = 'user';
     
-    $sql = "INSERT INTO users (full_name, email, password, phone, points, role) VALUES (?, ?, ?, ?, 0, 'user')";
+    // Prepare bio (default empty)
+    $bio = '';
+    $profile_image = null;
+    
+    // SQL includes all columns from your database structure
+    $sql = "INSERT INTO users (username, email, password, full_name, bio, profile_image, phone, faculty, year_of_study, student_id, role, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssss", $full_name, $email, $hashedPassword, $phone);
+    $stmt->bind_param("sssssssssss", $username, $email, $hashedPassword, $full_name, $bio, $profile_image, $phone, $faculty, $year_of_study, $student_id, $role);
     
-    $result = $stmt->execute();
-    $stmt->close();
-    
-    if ($result) {
+    if ($stmt->execute()) {
+        $stmt->close();
         return ['success' => true, 'message' => 'Registration successful! You can now login.'];
     }
-    return ['success' => false, 'message' => 'Registration failed. Please try again.'];
+    
+    $error = $stmt->error;
+    $stmt->close();
+    return ['success' => false, 'message' => 'Registration failed: ' . $error];
 }
 
 function logout() {
@@ -213,6 +243,13 @@ function checkAndAwardBadges($user_id) {
     $stmt->execute();
     $activities = $stmt->get_result()->fetch_assoc();
     $stmt->close();
+    
+    // Check if badges table exists
+    $checkTableSql = "SHOW TABLES LIKE 'badges'";
+    $tableCheck = $conn->query($checkTableSql);
+    if ($tableCheck->num_rows === 0) {
+        return; // No badges table
+    }
     
     $badgeSql = "SELECT * FROM badges WHERE id NOT IN (SELECT badge_id FROM user_badges WHERE user_id = ?)";
     $stmt = $conn->prepare($badgeSql);
@@ -285,6 +322,13 @@ function getUserStatistics($user_id) {
         'total_points' => 0,
         'co2_saved' => 0
     ];
+    
+    // Check if activities table exists
+    $checkTableSql = "SHOW TABLES LIKE 'activities'";
+    $tableCheck = $conn->query($checkTableSql);
+    if ($tableCheck->num_rows === 0) {
+        return $stats;
+    }
     
     $sql = "SELECT 
                 COUNT(*) as total,

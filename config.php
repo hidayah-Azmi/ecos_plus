@@ -6,14 +6,17 @@
 // =============================================
 
 // List of API keys (add multiple keys for fallback)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 require_once 'config/api_config.php';
 
-$apiKeys = GEMINI_API_KEYS;
+$apiKeys = GEMINI_API_KEY;
 $response = null;
 
 foreach ($apiKeys as $key) {
 
-    $url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=" . $key;
+    $url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=" . $key;
 
     // call API
     $result = file_get_contents($url);
@@ -85,7 +88,7 @@ define('POINTS_PER_KG', 5);
  * @return string|false Returns working API key or false if none work
  */
 function getWorkingApiKey() {
-    $keys = GEMINI_API_KEYS;
+    $keys = GEMINI_API_KEY;
     
     // Filter out empty keys
     $validKeys = array_filter($keys, function($key) {

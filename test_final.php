@@ -1,5 +1,5 @@
 <?php
-$api_key = 'AIzaSyCRmWcShWh_XxinN1Rpg83WATXtO43NUfc';
+$api_key = 'AIzaSyB9s1LSIGZM-m-Hqb6oGcz-4xoojeUEKOM';
 
 echo "<h1>Final Gemini API Test</h1>";
 

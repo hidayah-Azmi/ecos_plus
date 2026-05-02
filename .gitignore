@@ -4,3 +4,4 @@ config/api_config.php
 # Ignore uploaded files
 assets/uploads/
 assets/uploads/*
+test_api_simple.php

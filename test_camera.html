@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        video, canvas { border: 1px solid #ccc; margin: 10px; }
+        button { margin: 5px; padding: 10px; }
+        .result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h2>Camera & API Test</h2>
+    <video id="video" width="400" height="300" autoplay></video>
+    <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+    <div>
+        <button id="capture">Capture & Detect</button>
+        <button id="switchCam">Switch Camera</button>
+    </div>
+    <div id="result" class="result"></div>
+    
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let currentFacing = 'environment';
+        let stream = null;
+        
+        async function startCamera() {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: { exact: currentFacing } } 
+                });
+                video.srcObject = stream;
+            } catch(e) {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            }
+        }
+        
+        document.getElementById('switchCam').onclick = () => {
+            currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+            startCamera();
+        };
+        
+        document.getElementById('capture').onclick = async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Processing...';
+            
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('image', blob, 'test.jpg');
+                formData.append('ai_detect', '1');
+                
+                try {
+                    const response = await fetch('activity.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const text = await response.text();
+                    console.log('Response:', text);
+                    
+                    try {
+                        const json = JSON.parse(text);
+                        if (json.success) {
+                            resultDiv.innerHTML = `
+                                <strong>✅ Success!</strong><br>
+                                Category: ${json.category}<br>
+                                Points: ${json.points}<br>
+                                Icon: ${json.icon}
+                            `;
+                        } else {
+                            resultDiv.innerHTML = `
+                                <strong>❌ Failed:</strong><br>
+                                ${json.error}
+                            `;
+                        }
+                    } catch(e) {
+                        resultDiv.innerHTML = `<strong>Error:</strong> Invalid JSON response<br><pre>${text.substring(0, 200)}</pre>`;
+                    }
+                } catch(err) {
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
+                }
+            }, 'image/jpeg', 0.9);
+        };
+        
+        startCamera();
+    </script>
+</body>
+</html>
