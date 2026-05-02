@@ -433,7 +433,7 @@ $conn->close();
     <div class="navbar-container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="dashboard.php" class="navbar-brand-custom"><div class="logo-icon">
-                    <img src="assets/logo/12.png" alt="Logo" style="height:30px; object-fit:cover;">
+                    <img src="../assets/logo/12.png" alt="Logo" style="height:30px; object-fit:cover;">
                 </div><div class="logo-text">Ecos<span>+</span> Admin</div></a>
             <ul class="nav-links">
                 <li><a href="dashboard.php" class="nav-link-custom"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>

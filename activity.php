@@ -84,7 +84,7 @@ function detectWithGemini($image_base64) {
     return null;
 }
 
-// Handle AI detection (AJAX) - Keeping your Gemini logic
+// Handle AI detection (AJAX)
 if (isset($_POST['ai_detect'])) {
     header('Content-Type: application/json');
     if (!isset($_FILES['image']) || $_FILES['image']['error'] !== 0) {
@@ -97,28 +97,36 @@ if (isset($_POST['ai_detect'])) {
     
     $upload_dir = 'assets/uploads/';
     if (!file_exists($upload_dir)) mkdir($upload_dir, 0777, true);
+    
+    // Create filename
     $filename = 'activity_' . $user_id . '_' . date('Ymd_His') . '_' . rand(1000, 9999) . '.jpg';
     $image_path = $upload_dir . $filename;
-    file_put_contents($image_path, $image_data);
     
-    $category = detectWithGemini($image_base64);
-    
-    if ($category && isset($activity_types[$category])) {
-        echo json_encode([
-            'success' => true,
-            'category' => $category,
-            'description' => $activity_types[$category]['description'],
-            'points' => $activity_types[$category]['points'],
-            'icon' => $activity_types[$category]['icon'],
-            'image_path' => $image_path
-        ]);
+    // Save file and set permissions so the browser can read it
+    if(file_put_contents($image_path, $image_data)) {
+        chmod($image_path, 0644); // CRITICAL: Makes image publically readable
+        
+        $category = detectWithGemini($image_base64);
+        
+        if ($category && isset($activity_types[$category])) {
+            echo json_encode([
+                'success' => true,
+                'category' => $category,
+                'description' => $activity_types[$category]['description'],
+                'points' => $activity_types[$category]['points'],
+                'icon' => $activity_types[$category]['icon'],
+                'image_path' => $image_path // Path stored: assets/uploads/file.jpg
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Could not identify item', 'image_path' => $image_path]);
+        }
     } else {
-        echo json_encode(['success' => false, 'error' => 'Could not identify item', 'image_path' => $image_path]);
+        echo json_encode(['success' => false, 'error' => 'Failed to save image to server']);
     }
     exit;
 }
 
-// Handle Form Submission - FIXING THE INSERT
+// Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_activity'])) {
     $activity_type = $_POST['activity_type'] ?? '';
     $description = trim($_POST['description'] ?? '');
@@ -132,25 +140,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_activity'])) {
     } elseif (empty($image_path)) {
         $error = 'Please take a photo first';
     } else {
-        // Calculate Points
         $base_points = $activity_types[$activity_type]['points'] ?? 0;
         $total_points = $base_points + ($quantity * 2) + ($weight * 5);
         
-        // Use 'd' for weight if it is a decimal in your DB
-        $sql = "INSERT INTO activities (user_id, activity_type, description, points_earned, image_path, location, quantity, weight, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
+        // FIX: Added created_at to ensure the date is recorded correctly
+        $sql = "INSERT INTO activities (user_id, activity_type, description, points_earned, image_path, location, quantity, weight, status, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
         
         $stmt = $conn->prepare($sql);
-        
-        // TYPES: i (int), s (string), s (string), i (int), s (string), s (string), i (int), d (double/float)
+        // Correct types: i(int), s(string), s(string), i(int), s(string), s(string), i(int), d(double)
         $stmt->bind_param("ississid", $user_id, $activity_type, $description, $total_points, $image_path, $location, $quantity, $weight);
         
         if ($stmt->execute()) {
             $success = "Activity submitted! You earned $total_points points.";
-            // Clear path so it doesn't resubmit same image
             $image_path = ""; 
         } else {
-            // Detailed error reporting to help you find the problem
             $error = "DB Error: " . $stmt->error;
         }
         $stmt->close();
