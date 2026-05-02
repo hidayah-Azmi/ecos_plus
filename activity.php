@@ -17,7 +17,7 @@ $unreadCount = getUnreadCount($user_id);
 $notifications = getUserNotifications($user_id, 10);
 
 // YOUR WORKING API KEY
-define('GEMINI_API_KEY', 'AIzaSyDSwniPc0kfsWkQtRmb9yUejAtrRokRH_M');
+define('GEMINI_API_KEY', 'AIzaSyDocphUtJI-RX0iYep1hIk0R5IoOU5s9vI');
 
 // Activity types with points
 $activity_types = [
@@ -84,10 +84,9 @@ function detectWithGemini($image_base64) {
     return null;
 }
 
-// Handle AI detection from camera
+// Handle AI detection (AJAX) - Keeping your Gemini logic
 if (isset($_POST['ai_detect'])) {
     header('Content-Type: application/json');
-    
     if (!isset($_FILES['image']) || $_FILES['image']['error'] !== 0) {
         echo json_encode(['success' => false, 'error' => 'No image from camera']);
         exit;
@@ -114,42 +113,45 @@ if (isset($_POST['ai_detect'])) {
             'image_path' => $image_path
         ]);
     } else {
-        echo json_encode([
-            'success' => false, 
-            'error' => 'Cannot identify item. Please try again with clearer photo.',
-            'image_path' => $image_path
-        ]);
+        echo json_encode(['success' => false, 'error' => 'Could not identify item', 'image_path' => $image_path]);
     }
     exit;
 }
 
-// Handle form submission
+// Handle Form Submission - FIXING THE INSERT
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_activity'])) {
-    $activity_type = $_POST['activity_type'];
-    $description = trim($_POST['description']);
-    $quantity = intval($_POST['quantity']);
-    $weight = floatval($_POST['weight']);
-    $location = trim($_POST['location']);
-    $image_path = $_POST['image_path'] ?? null;
+    $activity_type = $_POST['activity_type'] ?? '';
+    $description = trim($_POST['description'] ?? '');
+    $quantity = intval($_POST['quantity'] ?? 1);
+    $weight = floatval($_POST['weight'] ?? 0);
+    $location = trim($_POST['location'] ?? '');
+    $image_path = $_POST['image_path'] ?? ''; 
     
     if (empty($activity_type)) {
         $error = 'Please select an activity type';
-    } elseif (empty($image_path) || !file_exists($image_path)) {
-        $error = 'Please take a photo first using the camera';
+    } elseif (empty($image_path)) {
+        $error = 'Please take a photo first';
     } else {
-        $base_points = $activity_types[$activity_type]['points'];
+        // Calculate Points
+        $base_points = $activity_types[$activity_type]['points'] ?? 0;
         $total_points = $base_points + ($quantity * 2) + ($weight * 5);
         
+        // Use 'd' for weight if it is a decimal in your DB
         $sql = "INSERT INTO activities (user_id, activity_type, description, points_earned, image_path, location, quantity, weight, status) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
+        
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ississii", $user_id, $activity_type, $description, $total_points, $image_path, $location, $quantity, $weight);
+        
+        // TYPES: i (int), s (string), s (string), i (int), s (string), s (string), i (int), d (double/float)
+        $stmt->bind_param("ississid", $user_id, $activity_type, $description, $total_points, $image_path, $location, $quantity, $weight);
         
         if ($stmt->execute()) {
-            $success = "Activity submitted! You earned $total_points points (pending approval)";
-            $_POST = array();
+            $success = "Activity submitted! You earned $total_points points.";
+            // Clear path so it doesn't resubmit same image
+            $image_path = ""; 
         } else {
-            $error = "Submission failed";
+            // Detailed error reporting to help you find the problem
+            $error = "DB Error: " . $stmt->error;
         }
         $stmt->close();
     }
