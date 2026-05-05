@@ -272,8 +272,7 @@ $ai_tips = generateAITips($stats, $userPoints, $co2Saved);
                 <li><a href="activity.php" class="nav-link-custom"><i class="fas fa-recycle"></i> Recycle</a></li>
                 <li><a href="map.php" class="nav-link-custom"><i class="fas fa-map-marker-alt"></i> Map</a></li>
                 <li><a href="leaderboard.php" class="nav-link-custom"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-                <li><a href="ai-insights.php" class="nav-link-custom"><i class="fas fa-robot"></i> AI</a></li>
-                <li><a href="ai-insights.php" class="nav-link-custom active"><i class="fas fa-robot"></i> AI</a></li>
+                <li><a href="ai-insights.php" class="nav-link-custom"><i class="fas fa-robot"></i> AI Tips</a></li>
                 <li><a href="community.php" class="nav-link-custom"><i class="fas fa-users"></i> Community</a></li>
                 <li><a href="events.php" class="nav-link-custom"><i class="fas fa-calendar"></i> Events</a></li>
                 <?php if (isAdmin()): ?>
@@ -311,7 +310,7 @@ $ai_tips = generateAITips($stats, $userPoints, $co2Saved);
         <li><a href="activity.php"><i class="fas fa-recycle"></i> Recycle</a></li>
         <li><a href="map.php"><i class="fas fa-map-marker-alt"></i> Map</a></li>
         <li><a href="leaderboard.php"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-        <li><a href="ai-insights.php" class="active"><i class="fas fa-robot"></i> AI</a></li>
+        <li><a href="ai-insights.php" class="active"><i class="fas fa-robot"></i> AI Tips</a></li>
         <li><a href="community.php"><i class="fas fa-users"></i> Community</a></li>
         <li><a href="events.php"><i class="fas fa-calendar"></i> Events</a></li>
         <li><a href="profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>

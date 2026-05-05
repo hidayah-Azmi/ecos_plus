@@ -306,7 +306,7 @@ $conn->close();
                 <li><a href="activity.php" class="nav-link-custom"><i class="fas fa-recycle"></i> Recycle</a></li>
                 <li><a href="map.php" class="nav-link-custom"><i class="fas fa-map-marker-alt"></i> Map</a></li>
                 <li><a href="leaderboard.php" class="nav-link-custom"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-                <li><a href="ai-insights.php" class="nav-link-custom"><i class="fas fa-robot"></i> AI</a></li>
+                <li><a href="ai-insights.php" class="nav-link-custom"><i class="fas fa-robot"></i> AI Tips</a></li>
                 <li><a href="community.php" class="nav-link-custom"><i class="fas fa-users"></i> Community</a></li>
                 <li><a href="events.php" class="nav-link-custom"><i class="fas fa-calendar"></i> Events</a></li>
                 <?php if (isAdmin()): ?>
@@ -337,12 +337,16 @@ $conn->close();
 
 <div class="mobile-menu" id="mobileMenu">
     <ul class="mobile-nav">
-        <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
         <li><a href="activity.php"><i class="fas fa-recycle"></i> Recycle</a></li>
-        <li><a href="history.php" class="active"><i class="fas fa-history"></i> History</a></li>
+        <li><a href="map.php"><i class="fas fa-map-marker-alt"></i> Map</a></li>
         <li><a href="leaderboard.php"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+        <li><a href="ai-insights.php"><i class="fas fa-robot"></i> AI Tips</a></li>
+        <li><a href="community.php"><i class="fas fa-users"></i> Community</a></li>
+        <li><a href="events.php"><i class="fas fa-calendar"></i> Events</a></li>
         <li><a href="profile.php"><i class="fas fa-user-circle"></i> Profile</a></li>
         <li><a href="rewards.php"><i class="fas fa-gift"></i> Rewards</a></li>
+        <li><a href="history.php"><i class="fas fa-history"></i> History</a></li>
         <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
     </ul>
 </div>

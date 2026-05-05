@@ -1,5 +1,5 @@
 <?php
-$api_key = 'AIzaSyB9s1LSIGZM-m-Hqb6oGcz-4xoojeUEKOM'; // Your actual API key
+$api_key = 'AIzaSyDocphUtJI-RX0iYep1hIk0R5IoOU5s9vI'; // Your actual API key
 $image_path = 'assets/uploads/test_image.jpg';
 
 // Test with a sample prompt
